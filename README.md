@@ -229,46 +229,7 @@ with open('emotion_model.tflite', 'wb') as f:
 
 ---
 
-## 🚀 Deployment Tips
 
-### Production Server Setup with Gunicorn
-```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
-
-### Using Waitress (Windows-friendly)
-```bash
-pip install waitress
-waitress-serve --port 5000 app:app
-```
-
-### Docker Containerization
-For consistent deployment across environments:
-
-**Dockerfile Example:**
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 5000
-
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
-```
-
-Build and run:
-```bash
-docker build -t emotion-recognition .
-docker run -p 5000:5000 emotion-recognition
-```
-
----
 
 ## 📝 License
 
