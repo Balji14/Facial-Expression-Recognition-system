@@ -109,27 +109,6 @@ Emotionrecognization/
 │
 ├── templates/                  # HTML templates
 │   └── index.html             # Main web interface
-│
-├── Train/                      # Training dataset
-│   ├── anger/
-│   ├── contempt/
-│   ├── disgust/
-│   ├── fear/
-│   ├── happy/
-│   ├── neutral/
-│   ├── sad/
-│   └── surprise/
-│
-├── Test/                       # Test dataset
-│   ├── Anger/
-│   ├── Contempt/
-│   ├── disgust/
-│   ├── fear/
-│   ├── happy/
-│   ├── neutral/
-│   ├── sad/
-│   └── surprise/
-│
 └── logs/                       # Training logs and TensorBoard events
     └── MobileNetV2_1772220144/
 ```
