@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Recognition App</title>
+    <!-- Use Google Fonts for better typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="glass-panel">
+            <header>
+                <h1>Facial Expression <span>Recognition</span></h1>
+                <p>Allow camera access, face the screen, and see what the AI thinks you're feeling.</p>
+            </header>
+
+            <main>
+                <!-- Live Video Feed -->
+                <div class="video-container">
+                    <video id="webcam" autoplay playsinline></video>
+                    <!-- Loading or Status Overlay -->
+                    <div id="status-overlay" class="overlay">Starting Webcam...</div>
+                    <canvas id="photo-canvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="capture-btn" disabled>
+                        <span class="btn-text">Capture Expression</span>
+                        <div class="spinner"></div> <!-- Loading Spinner -->
+                    </button>
+                    <button id="reset-btn" class="hidden">Reset</button>
+                </div>
+
+                <div id="result-container" class="hidden">
+                    <h2>You look <span id="emotion-label">Happy</span></h2>
+                    <p>Confidence: <span id="confidence-label">95%</span></p>
+                    <p id="error-message" class="hidden error"></p>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
