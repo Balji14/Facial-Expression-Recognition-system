@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.tflite
+confusion_matrix.png
+model_config.json
+venv/
+.env

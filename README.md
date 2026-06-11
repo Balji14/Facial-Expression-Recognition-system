@@ -1,3 +1,14 @@
+---
+title: Facial Emotion Recognition
+emoji: 😊
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # 🎭 Emotion Recognition Web App
 
 A real-time facial emotion recognition application built with Flask and TensorFlow. This project uses a MobileNetV2 deep learning model to detect and classify facial expressions from webcam feeds or uploaded images.
