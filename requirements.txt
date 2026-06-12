@@ -1,5 +1,5 @@
-flask
-gunicorn
+streamlit
 opencv-python-headless
 numpy
 tensorflow
+plotly
