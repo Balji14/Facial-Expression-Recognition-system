@@ -120,7 +120,11 @@ def predict_from_frame(frame_rgb: np.ndarray):
         return frame_rgb, "No face detected in this image. Please upload or capture a clear photo with a visible face."
 
     x, y, w, h = max(faces, key=lambda r: r[2] * r[3])
-    roi_rgb    = frame_rgb[y:y + h, x:x + w]
+    frame_h, frame_w = frame_rgb.shape[:2]
+    pad = int(0.2 * max(w, h))
+    x0, y0 = max(0, x - pad), max(0, y - pad)
+    x1, y1 = min(frame_w, x + w + pad), min(frame_h, y + h + pad)
+    roi_rgb = frame_rgb[y0:y1, x0:x1]
 
     prediction = _predict_with_tta(roi_rgb)
     max_index  = int(np.argmax(prediction))
