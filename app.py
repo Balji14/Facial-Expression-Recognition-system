@@ -99,7 +99,19 @@ def _predict_array(img_arr: np.ndarray) -> np.ndarray:
     raise RuntimeError("No model available")
 
 
+_clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+
+
+def _normalize_lighting(roi_rgb: np.ndarray) -> np.ndarray:
+    lab = cv2.cvtColor(roi_rgb, cv2.COLOR_RGB2LAB)
+    l, a, b = cv2.split(lab)
+    lab = cv2.merge((_clahe.apply(l), a, b))
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+
+
 def _predict_with_tta(roi_rgb: np.ndarray) -> np.ndarray:
+    roi_rgb = _normalize_lighting(roi_rgb)
+
     def _prep(img):
         resized = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
         arr = _preprocess_fn(np.asarray(resized, dtype=np.float32))
