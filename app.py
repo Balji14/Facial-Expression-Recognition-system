@@ -117,7 +117,7 @@ def predict_from_frame(frame_rgb: np.ndarray):
     gray  = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY)
     faces = detect_faces_fast(gray)
     if len(faces) == 0:
-        return frame_rgb, "No face detected in the image."
+        return frame_rgb, "No face detected in this image. Please upload or capture a clear photo with a visible face."
 
     x, y, w, h = max(faces, key=lambda r: r[2] * r[3])
     roi_rgb    = frame_rgb[y:y + h, x:x + w]
@@ -511,6 +511,12 @@ def inject_styles(dark: bool):
         border-color: #0D9488 !important;
         background: rgba(13,148,136,.04) !important;
     }}
+    [data-testid="stFileUploaderFile"], [data-testid="stFileUploaderFile"] * {{
+        color: {text1} !important;
+    }}
+    [data-testid="stFileUploaderFile"] small {{
+        color: {text2} !important;
+    }}
     [data-testid="stCameraInput"] > div > div:first-child {{
         border-radius: 16px !important; overflow: hidden !important;
         border: 2px solid rgba(13,148,136,.2) !important;
@@ -710,9 +716,9 @@ with st.container():
                 with st.spinner("Analyzing expression..."):
                     annotated, result = predict_from_frame(frame_rgb)
                 if isinstance(result, str):
-                    st.warning(result)
+                    st.error(f"🚫 {result}")
                     st.session_state.last_result = None
-                    st.session_state.last_image  = frame_rgb
+                    st.session_state.last_image  = None
                 else:
                     st.session_state.last_result = result
                     st.session_state.last_image  = annotated
