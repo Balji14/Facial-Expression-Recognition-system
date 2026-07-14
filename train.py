@@ -17,8 +17,8 @@ Run: python train.py
 import os, json
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.applications import EfficientNetB0
-from tensorflow.keras.applications.efficientnet import preprocess_input
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.layers import (
     Dense, GlobalAveragePooling2D, Dropout, BatchNormalization
 )
@@ -32,11 +32,17 @@ from sklearn.metrics import classification_report
 import tensorflow.keras.backend as K
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-TRAIN_DIR  = os.path.join(BASE_DIR, 'Train')
-VAL_DIR    = os.path.join(BASE_DIR, 'Test')
-IMG_SIZE   = 128
-BATCH_SIZE = 32
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+TRAIN_DIR   = os.environ.get('TRAIN_DIR', os.path.join(BASE_DIR, 'Train'))
+VAL_DIR     = os.environ.get('VAL_DIR', os.path.join(BASE_DIR, 'Test'))
+IMG_SIZE    = int(os.environ.get('IMG_SIZE', 128))
+BATCH_SIZE  = int(os.environ.get('BATCH_SIZE', 32))
+EPOCHS_P1   = int(os.environ.get('EPOCHS_P1', 12))
+EPOCHS_P2   = int(os.environ.get('EPOCHS_P2', 40))
+MODEL_OUT   = os.environ.get('MODEL_OUT', 'emotion_model.keras')
+CONFIG_OUT  = os.environ.get('CONFIG_OUT', 'model_config.json')
+MAX_TRAIN_STEPS = int(os.environ.get('MAX_TRAIN_STEPS', 0))  # 0 = use full dataset each epoch
+MAX_VAL_STEPS   = int(os.environ.get('MAX_VAL_STEPS', 0))
 
 # ── Focal loss ────────────────────────────────────────────────────────────────
 def focal_loss(gamma=2.0, alpha=0.25):
@@ -52,13 +58,11 @@ def focal_loss(gamma=2.0, alpha=0.25):
 # ── Data generators ───────────────────────────────────────────────────────────
 train_datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input,
-    rotation_range=25,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
-    brightness_range=(0.7, 1.3),
-    channel_shift_range=20.0,
+    rotation_range=20,
+    width_shift_range=0.15,
+    height_shift_range=0.15,
+    zoom_range=0.15,
+    brightness_range=(0.75, 1.25),
     horizontal_flip=True,
     fill_mode='nearest'
 )
@@ -85,8 +89,14 @@ class_weights_arr = compute_class_weight(
 class_weights = dict(enumerate(class_weights_arr))
 print(f"Class weights: {class_weights}")
 
+full_train_steps = train_gen.samples // BATCH_SIZE
+full_val_steps   = val_gen.samples // BATCH_SIZE
+train_steps = min(full_train_steps, MAX_TRAIN_STEPS) if MAX_TRAIN_STEPS else full_train_steps
+val_steps   = min(full_val_steps, MAX_VAL_STEPS) if MAX_VAL_STEPS else full_val_steps
+print(f"Steps/epoch: train={train_steps}/{full_train_steps}  val={val_steps}/{full_val_steps}")
+
 # ── Model ─────────────────────────────────────────────────────────────────────
-base = EfficientNetB0(
+base = MobileNetV2(
     input_shape=(IMG_SIZE, IMG_SIZE, 3),
     include_top=False,
     weights='imagenet'
@@ -118,13 +128,13 @@ model.compile(
 )
 model.fit(
     train_gen,
-    steps_per_epoch=train_gen.samples // BATCH_SIZE,
+    steps_per_epoch=train_steps,
     validation_data=val_gen,
-    validation_steps=val_gen.samples // BATCH_SIZE,
-    epochs=12,
+    validation_steps=val_steps,
+    epochs=EPOCHS_P1,
     class_weight=class_weights,
     callbacks=[
-        ModelCheckpoint('emotion_model.keras', monitor='val_accuracy',
+        ModelCheckpoint(MODEL_OUT, monitor='val_accuracy',
                         save_best_only=True, verbose=1),
         EarlyStopping(monitor='val_loss', patience=5,
                       restore_best_weights=True, verbose=1),
@@ -145,18 +155,18 @@ model.compile(
 )
 model.fit(
     train_gen,
-    steps_per_epoch=train_gen.samples // BATCH_SIZE,
+    steps_per_epoch=train_steps,
     validation_data=val_gen,
-    validation_steps=val_gen.samples // BATCH_SIZE,
-    epochs=40,
+    validation_steps=val_steps,
+    epochs=EPOCHS_P2,
     class_weight=class_weights,
     callbacks=[
-        ModelCheckpoint('emotion_model.keras', monitor='val_accuracy',
+        ModelCheckpoint(MODEL_OUT, monitor='val_accuracy',
                         save_best_only=True, verbose=1),
-        EarlyStopping(monitor='val_loss', patience=10,
+        EarlyStopping(monitor='val_loss', patience=6,
                       restore_best_weights=True, verbose=1),
         ReduceLROnPlateau(monitor='val_loss', factor=0.5,
-                          patience=4, min_lr=1e-7, verbose=1),
+                          patience=3, min_lr=1e-7, verbose=1),
     ],
 )
 
@@ -168,7 +178,7 @@ y_pred = np.argmax(Y_pred, axis=1)
 print(classification_report(val_gen.classes, y_pred, target_names=emotion_labels))
 
 # ── Save config so app.py auto-configures itself ──────────────────────────────
-cfg = {'img_size': IMG_SIZE, 'preprocessing': 'efficientnet', 'labels': emotion_labels}
-with open('model_config.json', 'w') as f:
+cfg = {'img_size': IMG_SIZE, 'preprocessing': 'mobilenet_v2', 'labels': emotion_labels}
+with open(CONFIG_OUT, 'w') as f:
     json.dump(cfg, f, indent=2)
-print("Saved model_config.json — app.py will use it automatically on next start.")
+print(f"Saved {CONFIG_OUT} — app.py will use it automatically on next start.")
