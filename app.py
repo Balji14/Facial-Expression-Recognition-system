@@ -4,6 +4,7 @@ Premium UI — Final Year Project Showcase
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -99,19 +100,7 @@ def _predict_array(img_arr: np.ndarray) -> np.ndarray:
     raise RuntimeError("No model available")
 
 
-_clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-
-
-def _normalize_lighting(roi_rgb: np.ndarray) -> np.ndarray:
-    lab = cv2.cvtColor(roi_rgb, cv2.COLOR_RGB2LAB)
-    l, a, b = cv2.split(lab)
-    lab = cv2.merge((_clahe.apply(l), a, b))
-    return cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
-
-
 def _predict_with_tta(roi_rgb: np.ndarray) -> np.ndarray:
-    roi_rgb = _normalize_lighting(roi_rgb)
-
     def _prep(img):
         resized = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
         arr = _preprocess_fn(np.asarray(resized, dtype=np.float32))
@@ -132,11 +121,7 @@ def predict_from_frame(frame_rgb: np.ndarray):
         return frame_rgb, "No face detected in this image. Please upload or capture a clear photo with a visible face."
 
     x, y, w, h = max(faces, key=lambda r: r[2] * r[3])
-    frame_h, frame_w = frame_rgb.shape[:2]
-    pad = int(0.2 * max(w, h))
-    x0, y0 = max(0, x - pad), max(0, y - pad)
-    x1, y1 = min(frame_w, x + w + pad), min(frame_h, y + h + pad)
-    roi_rgb = frame_rgb[y0:y1, x0:x1]
+    roi_rgb = frame_rgb[y:y + h, x:x + w]
 
     prediction = _predict_with_tta(roi_rgb)
     max_index  = int(np.argmax(prediction))
@@ -172,6 +157,7 @@ if 'dark_mode'   not in st.session_state: st.session_state.dark_mode   = False
 if 'history'     not in st.session_state: st.session_state.history     = []
 if 'last_result' not in st.session_state: st.session_state.last_result = None
 if 'last_image'  not in st.session_state: st.session_state.last_image  = None
+if 'show_camera' not in st.session_state: st.session_state.show_camera = True
 
 dark = st.session_state.dark_mode
 
@@ -663,7 +649,6 @@ st.markdown("""
 <div class="navbar">
   <div class="nav-brand">
     😊 <span>EmotionAI</span>
-    <span class="nav-pill">FYP 2025</span>
   </div>
   <div class="nav-links">
     <span class="nav-tag">🧠 Deep Learning</span>
@@ -676,7 +661,7 @@ st.markdown("""
 # ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
-  <div class="hero-badge">🤖 Final Year Project &nbsp;·&nbsp; Deep Learning &nbsp;·&nbsp; Computer Vision</div>
+  <div class="hero-badge">🤖 Deep Learning &nbsp;·&nbsp; Computer Vision</div>
   <h1 class="hero-title">AI-Powered Facial Expression<br>Recognition System</h1>
   <p class="hero-sub">
     A deep learning system using MobileNetV2 transfer learning and OpenCV face detection
@@ -712,7 +697,21 @@ with st.container():
 
         with tab_cam:
             st.markdown('<div style="margin-top:8px"></div>', unsafe_allow_html=True)
-            cam_img = st.camera_input("", label_visibility="collapsed")
+            if st.session_state.show_camera:
+                cam_img = st.camera_input(
+                    "", label_visibility="collapsed",
+                    key="camera_widget",
+                )
+            else:
+                cam_img = None
+                st.info("📸 Photo captured — click below to free the camera and take another.")
+                if st.button("🔄  Use Camera Again", key="retake_cam"):
+                    # A real page reload (not just a widget remount) is required to
+                    # release the OS-level camera lock so it can be re-acquired.
+                    components.html(
+                        "<script>window.parent.location.reload();</script>",
+                        height=0,
+                    )
 
         with tab_up:
             st.markdown('<div style="margin-top:8px"></div>', unsafe_allow_html=True)
@@ -722,7 +721,8 @@ with st.container():
                 label_visibility="visible",
             )
 
-        img_file = cam_img or up_img
+        img_file    = cam_img or up_img
+        used_camera = cam_img is not None
 
         if img_file is not None:
             if st.button("🚀  Detect Emotion", key="detect"):
@@ -742,6 +742,8 @@ with st.container():
                     if len(st.session_state.history) > 20:
                         st.session_state.history = st.session_state.history[:20]
                     st.toast(f"{result['emoji']} {result['emotion'].capitalize()} detected!", icon="✅")
+                if used_camera:
+                    st.session_state.show_camera = False
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_right:
@@ -1002,9 +1004,8 @@ st.markdown("""
 <div class="footer">
   <div class="footer-brand">😊 EmotionAI — Facial Expression Recognition</div>
   <p class="footer-text">
-    Final Year Project demonstrating real-time facial emotion recognition using
-    MobileNetV2 deep learning, OpenCV face detection, and Streamlit deployment
-    on Hugging Face Spaces.
+    Real-time facial emotion recognition using MobileNetV2 deep learning,
+    OpenCV face detection, and Streamlit deployment on Hugging Face Spaces.
   </p>
   <div class="footer-chips">
     <span class="footer-chip">🧠 MobileNetV2</span>
@@ -1012,7 +1013,6 @@ st.markdown("""
     <span class="footer-chip">⚡ TensorFlow</span>
     <span class="footer-chip">🚀 Streamlit</span>
     <span class="footer-chip">🤗 HuggingFace</span>
-    <span class="footer-chip">🎓 Final Year Project</span>
   </div>
   <div class="footer-copy">Built with ❤️ · AI-Powered Computer Vision · 2025</div>
 </div>
