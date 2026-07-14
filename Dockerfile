@@ -15,5 +15,5 @@ COPY . .
 
 EXPOSE 7860
 
-# gunicorn binds to port 7860 (required by HF Spaces)
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:7860", "--timeout", "120", "app:app"]
+# Streamlit serves on port 7860 (required by HF Spaces)
+CMD ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.headless=true"]
